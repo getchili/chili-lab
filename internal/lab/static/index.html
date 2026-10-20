@@ -251,6 +251,28 @@
   .modal .err { color: #ff8a80; margin-top: 12px; }
   .modal .close { margin-top: 18px; }
 
+  /* Accès téléphone */
+  .phone-btn { width: calc(100% - 4px); margin: 0 2px; display: flex; gap: 12px; align-items: center; text-align: left; padding: 12px; border-radius: 14px; background: linear-gradient(135deg, rgba(229, 48, 42, .14), rgba(255, 159, 28, .05)); border: 1px solid rgba(255, 77, 77, .25); transition: border-color .15s, transform .15s; }
+  .phone-btn:hover { border-color: rgba(255, 77, 77, .5); transform: translateY(-1px); }
+  .phone-btn .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(135deg, var(--red), var(--red-2)); flex: none; }
+  .phone-btn .ic svg { width: 20px; height: 20px; color: #fff; }
+  .phone-btn b { display: block; font-size: 13.5px; }
+  .phone-btn small { color: var(--muted); font-size: 12px; }
+  .phone-btn.on small { color: var(--green); }
+  .phone-box { width: 420px; max-width: calc(100vw - 32px); }
+  .phone-box .qr { width: 240px; height: 240px; margin: 18px auto; padding: 14px; background: #fff; border-radius: 18px; box-shadow: 0 0 0 6px rgba(255, 77, 77, .25), 0 20px 50px rgba(0, 0, 0, .5); }
+  .phone-box .qr img { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+  .phone-box ol { text-align: left; color: var(--muted); padding-left: 20px; margin: 0 0 14px; font-size: 13px; }
+  .phone-box ol li { margin-bottom: 4px; }
+  .phone-box code { display: block; font: 12px var(--mono); color: var(--dim); word-break: break-all; margin-bottom: 16px; }
+  .phone-actions { display: flex; gap: 10px; justify-content: center; }
+
+  /* Barre du haut, visible seulement sur petit écran (téléphone) */
+  .mobile-bar { display: none; align-items: center; gap: 10px; }
+  .mobile-bar img { width: 30px; height: 30px; }
+  .mobile-bar b { font: 700 17px var(--display); }
+  .mobile-bar span { margin-left: auto; color: var(--muted); font: 12px var(--mono); }
+
   /* Notifications */
   .toasts { position: fixed; top: 18px; right: 22px; z-index: 60; display: flex; flex-direction: column; gap: 10px; }
   .toast { min-width: 260px; max-width: 420px; padding: 12px 16px; border-radius: 13px; background: var(--panel-solid); border: 1px solid var(--line-2); box-shadow: 0 16px 40px rgba(0, 0, 0, .5); display: flex; gap: 10px; align-items: flex-start; animation: slide .3s ease; }
@@ -274,10 +296,24 @@
   @media (max-width: 900px) {
     body { grid-template-columns: 1fr; overflow: auto; }
     aside { display: none; }
-    main { overflow: visible; }
+    main { overflow: visible; padding: 14px 14px 24px; gap: 14px; }
+    .mobile-bar { display: flex; }
     .content { grid-template-columns: 1fr; }
-    .console { min-height: 300px; }
-    .hero { flex-wrap: wrap; }
+    .console { min-height: 300px; max-height: 60vh; }
+    .files { max-height: 50vh; }
+    .hero { flex-wrap: wrap; padding: 18px; gap: 16px; }
+    .hero-txt h1 { font-size: 22px; }
+    .chip { width: 72px; height: 72px; }
+    .chip .core { width: 54px; height: 54px; border-radius: 16px; }
+    .chip .core img { width: 30px; height: 30px; }
+    .actions { width: 100%; justify-content: space-between; }
+    .act { flex: 1; width: auto; min-width: 0; }
+    .tile { min-height: 96px; padding: 14px; }
+    .tile .val { font-size: 21px; }
+    .welcome { flex-direction: column; text-align: center; padding: 24px 18px; }
+    .welcome .cta { justify-content: center; }
+    .drop { display: none; }
+    .panel-head .tools .tool#openDir, .panel-head .tools .tool#changeDir { display: none; }
   }
 </style>
 </head>
@@ -298,6 +334,12 @@
       <button id="connectBtn" class="btn-sm">Relier</button>
     </div>
 
+    <div class="side-title">Sur ton téléphone</div>
+    <button class="phone-btn" id="phoneBtn">
+      <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg></span>
+      <span><b>Ouvrir sur mon téléphone</b><small id="phoneSub">pilote ta carte depuis ton canapé</small></span>
+    </button>
+
     <div class="side-title">WiFi de la carte</div>
     <div class="wifi-box">
       <p id="wifiState">Connecte une carte pour la relier à ton réseau.</p>
@@ -310,6 +352,7 @@
 </aside>
 
 <main>
+  <div class="mobile-bar"><img src="logo.svg" alt=""><b>Chili Lab</b><span id="mobileTarget"></span></div>
   <section id="top"></section>
   <section id="tiles" class="tiles"></section>
   <section class="content">
@@ -356,6 +399,24 @@
     <p id="flashSub">Ne débranche pas la carte.</p>
     <p class="err" id="flashErr"></p>
     <button class="btn-sm close" id="flashClose" hidden>Fermer</button>
+  </div>
+</div>
+
+<div class="modal" id="phoneModal">
+  <div class="box phone-box">
+    <h2>Ouvrir sur ton téléphone</h2>
+    <p>Scanne ce code avec l'appareil photo de ton téléphone.</p>
+    <div class="qr"><img id="phoneQR" alt="QR code"></div>
+    <ol>
+      <li>Le téléphone doit être sur <b>le même WiFi</b> que ce PC.</li>
+      <li>Si Windows demande l'autorisation du pare-feu, accepte pour les <b>réseaux privés</b>.</li>
+      <li>Laisse Chili Lab ouvert sur le PC : c'est lui qui compile et parle à la carte.</li>
+    </ol>
+    <code id="phoneURL"></code>
+    <div class="phone-actions">
+      <button class="btn-sm" id="phoneOff">Couper l'accès</button>
+      <button class="btn-sm" id="phoneClose">Fermer</button>
+    </div>
   </div>
 </div>
 
@@ -547,6 +608,7 @@ function renderPorts() {
   $("#wifiBtn").disabled = !S.connected;
   $("#disconnectBtn").style.visibility = S.connected ? "visible" : "hidden";
   $("#versions").textContent = `Chili Lab ${S.version}`;
+  $("#mobileTarget").textContent = S.connected ? S.target : "aucune carte";
 }
 
 function render() { renderTop(); renderTiles(); renderPorts(); }
@@ -663,6 +725,19 @@ $("#connectBtn").onclick = (e) => run(e.currentTarget, async () => {
 });
 $("#target").onkeydown = (e) => { if (e.key === "Enter") $("#connectBtn").click(); };
 $("#disconnectBtn").onclick = () => run(null, () => api("/api/disconnect", {}));
+
+// ------------------------------------------------------------------ Téléphone
+function showPhone(p) {
+  $("#phoneBtn").classList.toggle("on", p.enabled);
+  $("#phoneSub").textContent = p.enabled ? "accès ouvert · clique pour le QR code" : "pilote ta carte depuis ton canapé";
+  if (!p.enabled) { $("#phoneModal").classList.remove("show"); return; }
+  $("#phoneQR").src = p.qr || "";
+  $("#phoneURL").textContent = p.url;
+  $("#phoneModal").classList.add("show");
+}
+$("#phoneBtn").onclick = (e) => run(e.currentTarget, async () => showPhone(await api("/api/phone", { enable: true })));
+$("#phoneOff").onclick = (e) => run(e.currentTarget, async () => { showPhone(await api("/api/phone", { enable: false })); toast("ok", "Accès téléphone coupé"); });
+$("#phoneClose").onclick = () => $("#phoneModal").classList.remove("show");
 $("#wifiBtn").onclick = (e) => run(e.currentTarget, async () => {
   const ssid = $("#ssid").value.trim();
   if (!ssid) { toast("warn", "Indique le nom du réseau"); return; }

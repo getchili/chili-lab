@@ -68,6 +68,8 @@ type Server struct {
 	noFirmware map[string]string // ports ESP32 sans firmware Chili -> modèle de puce
 	ports      []device.Port
 
+	phone phoneAccess // accès depuis un téléphone (réseau local)
+
 	evMu    sync.Mutex
 	clients map[chan event]struct{}
 	log     []logLine
@@ -122,6 +124,7 @@ func Run(opts Options) error {
 			(!s.seen && time.Since(s.lastCli) > 60*time.Second))
 		s.evMu.Unlock()
 		if idle {
+			s.stopPhone()
 			s.disconnect(false)
 			return nil
 		}
@@ -300,6 +303,11 @@ func (s *Server) connect(target string) error {
 		return err
 	}
 	info, err := conn.Info(2 * time.Second)
+	if errors.Is(err, device.ErrNoFirmware) {
+		// Carte peut-être occupée (démarrage, sortie très bavarde) : on laisse
+		// plus de temps avant de conclure, car la suite redémarre la carte.
+		info, err = conn.Info(4 * time.Second)
+	}
 	if err != nil {
 		conn.Close()
 		if isSerial(target) && errors.Is(err, device.ErrNoFirmware) {
@@ -419,6 +427,7 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("/api/wifi", s.api(s.handleWiFi))
 	mux.HandleFunc("/api/flash", s.api(s.handleFlash))
 	mux.HandleFunc("/api/dir", s.api(s.handleSetDir))
+	mux.HandleFunc("/api/phone", s.api(s.handlePhone))
 	mux.HandleFunc("/api/reveal", s.api(s.handleReveal))
 	return mux
 }

@@ -1,0 +1,18 @@
+{
+  "name": "chili-lab",
+  "private": true,
+  "description": "Chili Lab — application de bureau pour Chili (scripts de build et de release)",
+  "scripts": {
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1 -Installer",
+    "release": "npm run build && node scripts/release.mjs"
+  },
+  "release": {
+    "repo": "getchili/chili-lab",
+    "name": "Chili Lab",
+    "versionFile": "main.go",
+    "assets": [
+      "dist/ChiliLabSetup-{version}.exe"
+    ],
+    "notes": "## Installation\n\nTélécharge **ChiliLabSetup-{version}.exe** et lance-le (pas besoin de droits administrateur). Chili Lab s'ouvre ensuite depuis le menu Démarrer.\n\nBranche ta carte ESP32 : elle est détectée toute seule, et Chili Lab propose d'installer le firmware si besoin."
+  }
+}

@@ -8,3 +8,4 @@ Application de bureau Windows pour programmer des ESP32 en Chili (langage : dép
 - Réglages `%APPDATA%\Chili Lab\config.json` ; dossier des programmes par défaut `Documents\Chili`, rempli avec les exemples au premier lancement.
 - Build : `build.ps1 [-Installer]` → `Chili Lab.exe`, `dist\ChiliLabSetup-x.y.z.exe` (Inno Setup, par utilisateur).
 - Terminal de l'utilisateur : Windows PowerShell 5.1 (pas de `&&`). Communication directe, en français.
+- Accès téléphone (internal/lab/phone.go) : à la demande, 2e écoute sur l IP LAN du PC (port aléatoire, même jeton), QR code PNG (skip2/go-qrcode). Coupé à la fermeture. Interface responsive (<900 px : barre du haut, pas de barre latérale).
