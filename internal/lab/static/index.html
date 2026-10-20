@@ -516,13 +516,15 @@ function renderTiles() {
 function renderPorts() {
   const box = $("#ports");
   const ports = (S.ports || []).filter((p) => p.likely || p.selected);
-  const remote = S.connected && !(S.ports || []).some((p) => p.selected);
   let html = "";
-  if (remote) html += `<button class="port sel"><div class="ic">${ICONS.wifi}</div><div><b>${esc(S.target)}</b><small>par WiFi</small></div><span class="dot"></span></button>`;
   for (const p of ports) {
-    const sub = p.selected ? "connectée" : p.chip ? `${p.chip} · sans firmware` : (p.bridge || "port série");
-    html += `<button class="port ${p.selected ? "sel" : ""} ${p.chip ? "warn" : ""}" data-port="${esc(p.name)}">
+    const sub = p.selected ? "connectée · USB" : p.chip ? `${p.chip} · sans firmware` : `USB · ${p.bridge || "port série"}`;
+    html += `<button class="port ${p.selected ? "sel" : ""} ${p.chip ? "warn" : ""}" data-port="${esc(p.name)}" title="${p.selected ? "Connectée" : "Se connecter par USB"}">
       <div class="ic">${ICONS.usb}</div><div><b>${esc(p.name)}</b><small>${esc(sub)}</small></div><span class="dot"></span></button>`;
+  }
+  for (const r of S.remotes || []) {
+    html += `<button class="port ${r.selected ? "sel" : ""}" data-remote="${esc(r.target)}" title="${r.selected ? "Connectée" : "Se connecter par WiFi"}">
+      <div class="ic">${ICONS.wifi}</div><div><b>${esc(r.target)}</b><small>${r.selected ? "connectée · WiFi" : esc(r.label)}</small></div><span class="dot"></span></button>`;
   }
   box.innerHTML = html || `<div class="empty-ports">Aucune carte branchée.</div>`;
   box.querySelectorAll("[data-port]").forEach((b) => b.onclick = () => {
@@ -530,7 +532,12 @@ function renderPorts() {
     const p = S.ports.find((x) => x.name === name);
     if (p && p.selected) return;
     if (p && p.chip) return flash(name);
-    run(b, () => api("/api/connect", { target: name }));
+    run(b, async () => { await api("/api/connect", { target: name }); toast("ok", `Connecté par USB (${name})`); });
+  });
+  box.querySelectorAll("[data-remote]").forEach((b) => b.onclick = () => {
+    const target = b.dataset.remote;
+    if ((S.remotes || []).find((r) => r.target === target && r.selected)) return;
+    run(b, async () => { await api("/api/connect", { target }); toast("ok", `Connecté par WiFi (${target})`); });
   });
 
   const i = S.info || {};
