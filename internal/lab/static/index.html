@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chili Lab</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #0b0706;
+    --panel: rgba(28, 18, 16, .72);
+    --panel-solid: #1a1110;
+    --line: rgba(255, 120, 90, .12);
+    --line-2: rgba(255, 255, 255, .06);
+    --text: #f6eee8;
+    --muted: #a8968d;
+    --dim: #6f5f58;
+    --red: #ff4d4d;
+    --red-2: #e5302a;
+    --orange: #ff9f1c;
+    --amber: #ffc04d;
+    --green: #4ade80;
+    --pink: #f15bb5;
+    --violet: #c77dff;
+    --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+    --sans: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+    --display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    --r: 18px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background:
+      radial-gradient(900px 500px at 78% -10%, rgba(229, 48, 42, .20), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(255, 159, 28, .08), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.5 var(--sans);
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before { /* trame de circuit, très discrète */
+    content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .5;
+    background-image: radial-gradient(rgba(255, 120, 90, .07) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(180deg, #000, transparent 85%);
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+  button:disabled { cursor: not-allowed; opacity: .35; }
+  input { font: inherit; color: var(--text); }
+  h1, h2, h3 { margin: 0; font-family: var(--display); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .08); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+
+  /* ---------------------------------------------------------------- Barre latérale */
+  aside {
+    position: relative; z-index: 1;
+    border-right: 1px solid var(--line-2);
+    background: rgba(12, 8, 7, .6);
+    backdrop-filter: blur(20px);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 22px 22px 18px; }
+  .brand img { width: 40px; height: 40px; filter: drop-shadow(0 6px 18px rgba(229, 48, 42, .45)); }
+  .brand b { display: block; font: 700 19px var(--display); letter-spacing: -.3px; }
+  .brand span { color: var(--muted); font-size: 12px; }
+  .side-scroll { overflow-y: auto; padding: 0 14px 14px; flex: 1; }
+  .side-title { color: var(--dim); font: 600 11px var(--sans); letter-spacing: 1.4px; text-transform: uppercase; margin: 18px 8px 10px; display: flex; justify-content: space-between; align-items: center; }
+  .side-title .live { color: var(--green); letter-spacing: 0; text-transform: none; font-weight: 500; display: flex; gap: 6px; align-items: center; }
+  .side-title .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+
+  .port {
+    width: 100%; text-align: left; display: flex; gap: 12px; align-items: center;
+    padding: 12px; border-radius: 14px; border: 1px solid transparent; margin-bottom: 6px;
+    transition: background .15s, border-color .15s;
+  }
+  .port:hover { background: rgba(255, 255, 255, .03); }
+  .port.sel { background: linear-gradient(135deg, rgba(229, 48, 42, .16), rgba(255, 159, 28, .05)); border-color: rgba(255, 77, 77, .3); }
+  .port .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: rgba(255, 255, 255, .04); flex: none; }
+  .port .ic svg { width: 20px; height: 20px; }
+  .port b { display: block; font-size: 14px; }
+  .port small { color: var(--muted); font-size: 12px; }
+  .port .dot { margin-left: auto; width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: none; }
+  .port.sel .dot { background: var(--green); box-shadow: 0 0 0 4px rgba(74, 222, 128, .15); }
+  .port.warn .dot { background: var(--amber); }
+  .empty-ports { color: var(--muted); font-size: 13px; padding: 10px 8px; }
+
+  .field { display: flex; gap: 8px; margin: 0 2px 8px; }
+  .input {
+    flex: 1; min-width: 0; background: rgba(0, 0, 0, .35); border: 1px solid var(--line-2);
+    border-radius: 11px; padding: 9px 12px; outline: none; transition: border-color .15s, box-shadow .15s;
+  }
+  .input:focus { border-color: rgba(255, 77, 77, .5); box-shadow: 0 0 0 3px rgba(255, 77, 77, .12); }
+  .input::placeholder { color: var(--dim); }
+  .btn-sm { padding: 9px 12px; border-radius: 11px; background: rgba(255, 255, 255, .06); font-weight: 600; white-space: nowrap; }
+  .btn-sm:hover:not(:disabled) { background: rgba(255, 255, 255, .1); }
+  .btn-sm.full { width: 100%; }
+  .wifi-box { background: var(--panel); border: 1px solid var(--line-2); border-radius: 14px; padding: 12px 10px 4px; margin: 0 2px; }
+  .wifi-box p { margin: 0 4px 10px; color: var(--muted); font-size: 12.5px; }
+
+  .side-foot { padding: 14px 22px; border-top: 1px solid var(--line-2); color: var(--dim); font: 12px var(--mono); display: flex; justify-content: space-between; }
+  .side-foot button { color: var(--muted); font-size: 12px; }
+  .side-foot button:hover { color: var(--text); }
+
+  /* ---------------------------------------------------------------- Zone principale */
+  main {
+    position: relative; z-index: 1; min-height: 0; overflow: hidden;
+    display: grid; grid-template-rows: auto auto 1fr; gap: 18px; padding: 22px 26px 24px;
+  }
+  .card { background: var(--panel); border: 1px solid var(--line-2); border-radius: var(--r); backdrop-filter: blur(16px); }
+
+  /* En-tête de la carte */
+  .hero { display: flex; align-items: center; gap: 24px; padding: 22px 24px; position: relative; overflow: hidden; }
+  .hero::after {
+    content: ""; position: absolute; right: -120px; top: -160px; width: 420px; height: 420px; border-radius: 50%;
+    background: radial-gradient(circle, var(--glow, rgba(229, 48, 42, .18)), transparent 65%); pointer-events: none; transition: background .6s;
+  }
+  .chip { position: relative; width: 92px; height: 92px; flex: none; display: grid; place-items: center; }
+  .chip .ring { position: absolute; inset: 0; border-radius: 50%; padding: 3px;
+    background: conic-gradient(from var(--a, 0deg), var(--c1, #3a2a27), var(--c2, #3a2a27), var(--c1, #3a2a27));
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+  }
+  .chip.running .ring { animation: spin 2.4s linear infinite; }
+  .chip .core { width: 70px; height: 70px; border-radius: 20px; background: linear-gradient(145deg, #2a1916, #120b0a); border: 1px solid rgba(255, 255, 255, .06); display: grid; place-items: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 12px 30px rgba(0, 0, 0, .4); }
+  .chip .core img { width: 40px; height: 40px; }
+  .hero-txt { min-width: 0; flex: 1; position: relative; z-index: 1; }
+  .hero-txt .eyebrow { color: var(--muted); font: 600 11.5px var(--sans); letter-spacing: 1.3px; text-transform: uppercase; }
+  .hero-txt h1 { font-size: 28px; letter-spacing: -.6px; margin: 2px 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip-tag { font: 12px var(--mono); color: var(--muted); background: rgba(255, 255, 255, .04); border: 1px solid var(--line-2); padding: 3px 9px; border-radius: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font-weight: 600; font-size: 13px; background: rgba(255, 255, 255, .05); border: 1px solid var(--line-2); white-space: nowrap; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 12px currentColor; }
+  .pill.running { color: var(--green); background: rgba(74, 222, 128, .08); border-color: rgba(74, 222, 128, .25); }
+  .pill.running i { animation: blink 1.6s infinite; }
+  .pill.paused { color: var(--amber); background: rgba(255, 192, 77, .08); border-color: rgba(255, 192, 77, .25); }
+  .pill.killed { color: #ff8a80; background: rgba(255, 77, 77, .07); border-color: rgba(255, 77, 77, .22); }
+  .pill.error { color: var(--red); background: rgba(255, 77, 77, .12); border-color: rgba(255, 77, 77, .4); }
+  .pill.none { color: var(--muted); }
+
+  .actions { display: flex; gap: 10px; position: relative; z-index: 1; flex-wrap: wrap; justify-content: flex-end; }
+  .act {
+    display: flex; flex-direction: column; align-items: center; gap: 6px; width: 84px; padding: 12px 6px 10px;
+    border-radius: 15px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line-2);
+    font-size: 12.5px; font-weight: 600; transition: transform .15s, background .15s, border-color .15s, box-shadow .15s;
+  }
+  .act svg { width: 22px; height: 22px; }
+  .act:hover:not(:disabled) { transform: translateY(-2px); background: rgba(255, 255, 255, .07); }
+  .act.go:not(:disabled) { color: #08130c; background: linear-gradient(135deg, #6ee7a0, #22c55e); border-color: transparent; box-shadow: 0 10px 26px rgba(34, 197, 94, .3); }
+  .act.pause:hover:not(:disabled) { border-color: rgba(255, 192, 77, .4); color: var(--amber); }
+  .act.kill:hover:not(:disabled) { border-color: rgba(255, 77, 77, .5); color: var(--red); }
+  .act.erase:hover:not(:disabled) { border-color: rgba(255, 255, 255, .2); }
+
+  /* Bandeaux */
+  .banner { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; margin-top: -4px; }
+  .banner.fw { background: linear-gradient(90deg, rgba(255, 159, 28, .14), rgba(255, 159, 28, .03)); border: 1px solid rgba(255, 159, 28, .3); }
+  .banner p { margin: 0; flex: 1; }
+  .banner b { color: var(--orange); }
+
+  /* Tuiles */
+  .tiles { display: grid; grid-template-columns: 1.35fr 1fr 1fr 1fr; gap: 14px; }
+  .tile { padding: 16px 18px; min-height: 112px; position: relative; overflow: hidden; }
+  .tile .lbl { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .4px; display: flex; gap: 7px; align-items: center; }
+  .tile .lbl svg { width: 15px; height: 15px; opacity: .8; }
+  .tile .val { font: 600 26px var(--display); letter-spacing: -.6px; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .val small { font-size: 14px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+  .tile .sub { color: var(--muted); font: 12px var(--mono); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .spark { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; opacity: .85; }
+  .tile > :not(.spark) { position: relative; z-index: 1; }
+  .tile.has-spark { padding-bottom: 44px; }
+
+  /* Contenu : programmes + console */
+  .content { display: grid; grid-template-columns: minmax(330px, 400px) 1fr; gap: 18px; min-height: 0; }
+  .panel { display: flex; flex-direction: column; min-height: 0; }
+  .panel-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px 12px; }
+  .panel-head h3 { font-size: 15px; }
+  .panel-head .count { color: var(--dim); font: 12px var(--mono); }
+  .panel-head .tools { margin-left: auto; display: flex; gap: 6px; }
+  .tool { padding: 6px 10px; border-radius: 9px; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+  .tool:hover { background: rgba(255, 255, 255, .06); color: var(--text); }
+  .tool.on { color: var(--green); }
+
+  .drop {
+    margin: 0 16px 12px; border: 1.5px dashed rgba(255, 120, 90, .3); border-radius: 15px; padding: 18px;
+    display: flex; gap: 14px; align-items: center; cursor: pointer; transition: all .2s;
+    background: linear-gradient(135deg, rgba(229, 48, 42, .06), transparent);
+  }
+  .drop:hover, .drop.over { border-color: var(--red); background: linear-gradient(135deg, rgba(229, 48, 42, .16), rgba(255, 159, 28, .04)); }
+  .drop.over { transform: scale(1.015); }
+  .drop .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: linear-gradient(135deg, var(--red), var(--red-2)); box-shadow: 0 8px 20px rgba(229, 48, 42, .35); flex: none; }
+  .drop .ic svg { width: 22px; height: 22px; color: #fff; }
+  .drop b { display: block; }
+  .drop small { color: var(--muted); }
+
+  .files { overflow-y: auto; padding: 0 10px 12px; flex: 1; min-height: 0; }
+  .group { color: var(--dim); font: 600 11px var(--sans); letter-spacing: 1.2px; text-transform: uppercase; margin: 10px 8px 6px; }
+  .file { display: flex; align-items: center; gap: 10px; padding: 9px 8px 9px 10px; border-radius: 12px; }
+  .file:hover { background: rgba(255, 255, 255, .035); }
+  .file img { width: 22px; height: 22px; }
+  .file .nm { min-width: 0; flex: 1; }
+  .file .nm b { display: block; font: 600 13.5px var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file .nm small { color: var(--dim); font-size: 11.5px; }
+  .file .go { padding: 7px 12px; border-radius: 10px; font-weight: 700; font-size: 12.5px; background: rgba(255, 77, 77, .12); color: #ff8a80; display: flex; gap: 6px; align-items: center; opacity: .85; }
+  .file .go svg { width: 13px; height: 13px; }
+  .file:hover .go:not(:disabled) { opacity: 1; background: linear-gradient(135deg, var(--red), var(--red-2)); color: #fff; }
+  .file .chk { padding: 7px 8px; border-radius: 10px; color: var(--muted); font-size: 12px; }
+  .file .chk:hover { background: rgba(255, 255, 255, .06); color: var(--text); }
+  .nofiles { color: var(--muted); padding: 8px 10px; font-size: 13px; }
+
+  .errors { margin: 0 16px 14px; border-radius: 13px; background: rgba(255, 77, 77, .08); border: 1px solid rgba(255, 77, 77, .3); padding: 12px 14px; display: none; }
+  .errors.show { display: block; animation: pop .25s ease; }
+  .errors h4 { margin: 0 0 6px; color: #ff8a80; font-size: 13px; display: flex; justify-content: space-between; }
+  .errors h4 button { color: var(--muted); }
+  .errors div { font: 12.5px var(--mono); padding: 3px 0; color: #ffd7d2; }
+  .errors div span { color: var(--red); margin-right: 8px; }
+
+  /* Console */
+  .console { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 18px 16px; font: 13px/1.65 var(--mono); }
+  .ln { display: flex; gap: 14px; animation: fadein .2s ease; }
+  .ln time { color: var(--dim); flex: none; user-select: none; }
+  .ln span { white-space: pre-wrap; word-break: break-word; }
+  .ln.out span.num { color: var(--pink); }
+  .ln.event span { color: var(--amber); }
+  .ln.event span::before { content: "● "; }
+  .ln.sys span { color: var(--muted); font-style: italic; }
+  .ln.err span { color: var(--red); }
+  .console-empty { color: var(--dim); text-align: center; margin-top: 40px; font-family: var(--sans); }
+  .console-empty svg { width: 42px; height: 42px; opacity: .4; display: block; margin: 0 auto 10px; }
+
+  /* Écrans vides */
+  .welcome { display: flex; align-items: center; gap: 26px; padding: 30px; }
+  .plug { width: 96px; height: 96px; flex: none; border-radius: 28px; display: grid; place-items: center; background: rgba(255, 255, 255, .03); border: 1px solid var(--line-2); }
+  .plug svg { width: 50px; height: 50px; color: var(--muted); animation: float 3s ease-in-out infinite; }
+  .welcome h1 { font-size: 26px; letter-spacing: -.5px; margin-bottom: 6px; }
+  .welcome p { color: var(--muted); margin: 0 0 4px; max-width: 620px; }
+  .welcome .cta { margin-top: 14px; display: flex; gap: 10px; }
+  .big-btn { padding: 12px 20px; border-radius: 13px; font-weight: 700; background: linear-gradient(135deg, var(--red), var(--red-2)); color: #fff; box-shadow: 0 10px 28px rgba(229, 48, 42, .35); transition: transform .15s; }
+  .big-btn:hover { transform: translateY(-2px); }
+
+  /* Modale de flash */
+  .modal { position: fixed; inset: 0; z-index: 50; display: none; place-items: center; background: rgba(5, 3, 3, .7); backdrop-filter: blur(8px); }
+  .modal.show { display: grid; animation: fadein .2s; }
+  .modal .box { width: 440px; padding: 30px; text-align: center; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, .6); }
+  .gauge { width: 150px; height: 150px; margin: 0 auto 18px; position: relative; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 32px var(--display); }
+  .modal h2 { font-size: 20px; margin-bottom: 6px; }
+  .modal p { color: var(--muted); margin: 0 0 4px; }
+  .modal .err { color: #ff8a80; margin-top: 12px; }
+  .modal .close { margin-top: 18px; }
+
+  /* Notifications */
+  .toasts { position: fixed; top: 18px; right: 22px; z-index: 60; display: flex; flex-direction: column; gap: 10px; }
+  .toast { min-width: 260px; max-width: 420px; padding: 12px 16px; border-radius: 13px; background: var(--panel-solid); border: 1px solid var(--line-2); box-shadow: 0 16px 40px rgba(0, 0, 0, .5); display: flex; gap: 10px; align-items: flex-start; animation: slide .3s ease; }
+  .toast i { width: 9px; height: 9px; border-radius: 50%; margin-top: 6px; flex: none; background: var(--muted); }
+  .toast.ok i { background: var(--green); }
+  .toast.warn i { background: var(--amber); }
+  .toast.error i { background: var(--red); }
+
+  @keyframes spin { to { --a: 360deg; } }
+  @property --a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  @keyframes blink { 50% { opacity: .35; } }
+  @keyframes fadein { from { opacity: 0; } }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  @keyframes slide { from { opacity: 0; transform: translateX(20px); } }
+  @keyframes float { 50% { transform: translateY(-6px); } }
+
+  @media (max-width: 1150px) {
+    .tiles { grid-template-columns: 1fr 1fr; }
+    .act { width: 72px; }
+  }
+  @media (max-width: 900px) {
+    body { grid-template-columns: 1fr; overflow: auto; }
+    aside { display: none; }
+    main { overflow: visible; }
+    .content { grid-template-columns: 1fr; }
+    .console { min-height: 300px; }
+    .hero { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <img src="logo.svg" alt="">
+    <div><b>Chili Lab</b><span>Programme tes ESP32 en Chili</span></div>
+  </div>
+  <div class="side-scroll">
+    <div class="side-title">Cartes <span class="live">en direct</span></div>
+    <div id="ports"></div>
+
+    <div class="side-title">Par adresse</div>
+    <div class="field">
+      <input id="target" class="input" placeholder="COM4 ou 192.168.1.42">
+      <button id="connectBtn" class="btn-sm">Relier</button>
+    </div>
+
+    <div class="side-title">WiFi de la carte</div>
+    <div class="wifi-box">
+      <p id="wifiState">Connecte une carte pour la relier à ton réseau.</p>
+      <div class="field"><input id="ssid" class="input" placeholder="Nom du réseau (2,4 GHz)"></div>
+      <div class="field"><input id="pass" class="input" type="password" placeholder="Mot de passe"></div>
+      <div class="field"><button id="wifiBtn" class="btn-sm full">Connecter au WiFi</button></div>
+    </div>
+  </div>
+  <div class="side-foot"><span id="versions">chili</span><button id="disconnectBtn">Déconnecter</button></div>
+</aside>
+
+<main>
+  <section id="top"></section>
+  <section id="tiles" class="tiles"></section>
+  <section class="content">
+    <div class="card panel">
+      <div class="panel-head">
+        <h3>Programmes</h3>
+        <span class="count" id="workdir"></span>
+        <div class="tools"><button class="tool" id="openDir" title="Ouvrir le dossier dans l'Explorateur">Ouvrir</button><button class="tool" id="changeDir" title="Choisir un autre dossier">Changer</button><button class="tool" id="refreshFiles" title="Actualiser">Actualiser</button></div>
+      </div>
+      <label class="drop" id="drop">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0l-6 6m6-6l6 6"/></svg></div>
+        <div><b>Glisse un fichier .chl ici</b><small>ou clique pour le choisir : il est compilé puis envoyé</small></div>
+        <input type="file" id="fileInput" accept=".chl" hidden>
+      </label>
+      <div class="errors" id="errors"></div>
+      <div class="files" id="files"></div>
+    </div>
+
+    <div class="card panel">
+      <div class="panel-head">
+        <h3>Console</h3>
+        <span class="count" id="lineCount">0 ligne</span>
+        <div class="tools">
+          <button class="tool on" id="autoscroll">Défilement auto</button>
+          <button class="tool" id="clearLog">Effacer</button>
+        </div>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="flashModal">
+  <div class="box">
+    <div class="gauge">
+      <svg viewBox="0 0 120 120">
+        <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9f1c"/><stop offset="1" stop-color="#e5302a"/></linearGradient></defs>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10"/>
+        <circle id="gaugeArc" cx="60" cy="60" r="52" fill="none" stroke="url(#gg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" style="transition: stroke-dashoffset .3s"/>
+      </svg>
+      <b id="gaugePct">0 %</b>
+    </div>
+    <h2 id="flashTitle">Installation du firmware</h2>
+    <p id="flashSub">Ne débranche pas la carte.</p>
+    <p class="err" id="flashErr"></p>
+    <button class="btn-sm close" id="flashClose" hidden>Fermer</button>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const token = new URLSearchParams(location.search).get("token");
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let S = null;          // dernier état reçu
+let autoscroll = true;
+let lineCount = 0;
+let workDir = "";
+
+const ICONS = {
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1.4"/><rect x="14" y="4.5" width="4" height="15" rx="1.4"/></svg>',
+  kill: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="3"/></svg>',
+  erase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
+  usb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v14M12 2l-2.5 3M12 2l2.5 3M7 9v3l5 3 5-3V8.5M7 9a1.5 1.5 0 1 0 0-.01M15.5 7h3v3h-3zM12 16a2.5 2.5 0 1 0 .01 0"/></svg>',
+  chip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="6" width="12" height="12" rx="2.5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg>',
+  wifi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 8.5a15 15 0 0 1 20 0M5 12a10 10 0 0 1 14 0M8.5 15.5a5 5 0 0 1 7 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/></svg>',
+  mem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 7v10M11 7v10M15 7v10M3 20h18"/></svg>',
+  prog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+  term: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9l3 3-3 3M12 15h5"/></svg>',
+};
+
+// ------------------------------------------------------------------ API
+async function api(path, body) {
+  const r = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "X-Chili-Token": token, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || r.statusText); e.details = j.details; throw e; }
+  return j;
+}
+
+function toast(level, msg) {
+  const t = document.createElement("div");
+  t.className = "toast " + level;
+  t.innerHTML = `<i></i><div>${esc(msg)}</div>`;
+  $("#toasts").append(t);
+  setTimeout(() => { t.style.transition = "opacity .4s"; t.style.opacity = 0; setTimeout(() => t.remove(), 400); }, 4200);
+}
+
+async function run(btn, fn) {
+  if (btn) btn.disabled = true;
+  try { await fn(); } catch (e) { toast("error", e.message); } finally { if (btn) btn.disabled = false; }
+}
+
+// ------------------------------------------------------------------ État de la carte
+function status(info) {
+  if (!info) return null;
+  switch (info.state) {
+    case "running": return { cls: "running", label: "En cours d'exécution", c1: "#4ade80", c2: "#14532d", glow: "rgba(74,222,128,.16)" };
+    case "stopped": return info.autorun === "0"
+      ? { cls: "killed", label: "Arrêté", c1: "#ff8a80", c2: "#3a2a27", glow: "rgba(229,48,42,.14)" }
+      : { cls: "paused", label: "En pause", c1: "#ffc04d", c2: "#3a2a27", glow: "rgba(255,192,77,.14)" };
+    case "done": return { cls: "paused", label: "Terminé", c1: "#a8968d", c2: "#3a2a27", glow: "rgba(168,150,141,.10)" };
+    case "error": return { cls: "error", label: "Erreur", c1: "#ff4d4d", c2: "#5b0f0f", glow: "rgba(255,77,77,.22)" };
+    default: return { cls: "none", label: "Aucun programme", c1: "#3a2a27", c2: "#3a2a27", glow: "rgba(229,48,42,.10)" };
+  }
+}
+
+function renderTop() {
+  const top = $("#top");
+  if (!S.connected) {
+    const bare = (S.ports || []).find((p) => p.chip);
+    if (bare) {
+      top.innerHTML = `<div class="card welcome">
+        <div class="plug" style="border-color:rgba(255,159,28,.35)">${ICONS.chip.replace("<svg", '<svg style="color:var(--orange)"')}</div>
+        <div><h1>${esc(bare.chip)} détecté sur ${esc(bare.name)}</h1>
+          <p>Cette carte n'a pas encore le firmware Chili. Installe-le une fois (environ 30 secondes) : ensuite, tes programmes s'envoient instantanément.</p>
+          <div class="cta"><button class="big-btn" id="flashBare">Installer Chili sur la carte</button></div></div></div>`;
+      $("#flashBare").onclick = () => flash(bare.name);
+      return;
+    }
+    top.innerHTML = `<div class="card welcome">
+      <div class="plug">${ICONS.usb}</div>
+      <div><h1>Branche ta carte ESP32</h1>
+        <p>Chili la détecte toute seule dès qu'elle est branchée. Utilise un câble USB de données (certains câbles ne font que la charge).</p>
+        <p>Carte en WiFi ? Indique son adresse dans la barre de gauche.</p></div></div>`;
+    return;
+  }
+  const i = S.info || {};
+  const st = status(i);
+  const outdated = i.version && i.version !== S.fwVersion;
+  const hasProg = i.program && i.program !== "none";
+  const running = i.state === "running";
+  document.querySelector(".hero")?.style;
+  top.innerHTML = `
+    <div class="card hero" style="--glow:${st.glow}">
+      <div class="chip ${st.cls}"><div class="ring" style="--c1:${st.c1};--c2:${st.c2}"></div><div class="core"><img src="logo.svg" alt=""></div></div>
+      <div class="hero-txt">
+        <div class="eyebrow">${esc(S.target)} · connectée</div>
+        <h1>${esc(i.chip || "ESP32")}</h1>
+        <div class="meta">
+          <span class="pill ${st.cls}"><i></i>${st.label}</span>
+          <span class="chip-tag">firmware ${esc(i.version || "?")}</span>
+          ${i.host ? `<span class="chip-tag">${esc(i.host)}</span>` : ""}
+        </div>
+      </div>
+      <div class="actions">
+        <button class="act go" id="aStart" ${hasProg && !running ? "" : "disabled"} title="Relance le programme stocké">${ICONS.play}Lancer</button>
+        <button class="act pause" id="aStop" ${running ? "" : "disabled"} title="Pause : repart au prochain démarrage">${ICONS.pause}Pause</button>
+        <button class="act kill" id="aKill" ${hasProg && !(i.state === "stopped" && i.autorun === "0") ? "" : "disabled"} title="Arrêt durable : ne se relance plus au démarrage">${ICONS.kill}Kill</button>
+        <button class="act erase" id="aErase" ${hasProg ? "" : "disabled"} title="Efface le programme de la carte">${ICONS.erase}Effacer</button>
+      </div>
+    </div>
+    ${outdated ? `<div class="banner fw" style="margin-top:14px"><span style="color:var(--orange)">${ICONS.bolt.replace("<svg", '<svg width="22" height="22"')}</span>
+      <p>Une nouvelle version du firmware est disponible : <b>${esc(i.version)} → ${esc(S.fwVersion)}</b>. Ton programme est conservé.</p>
+      <button class="btn-sm" id="aFlash">Mettre à jour</button></div>` : ""}`;
+  for (const [id, cmd] of [["aStart", "start"], ["aStop", "stop"], ["aKill", "kill"], ["aErase", "erase"]]) {
+    $("#" + id).onclick = (e) => run(e.currentTarget, async () => {
+      if (cmd === "erase" && !confirm("Effacer le programme de la carte ?")) return;
+      const r = await api("/api/cmd", { cmd });
+      toast("ok", r.message);
+    });
+  }
+  if (outdated) $("#aFlash").onclick = () => flash(S.target);
+}
+
+function spark(values) {
+  if (!values || values.length < 2) return "";
+  const w = 300, h = 54, min = Math.min(...values), max = Math.max(...values);
+  const span = Math.max(max - min, 1);
+  const pts = values.map((v, k) => [k * w / (values.length - 1), h - 8 - (v - min) / span * (h - 16)]);
+  const line = pts.map((p, k) => (k ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4d4d" stop-opacity=".35"/><stop offset="1" stop-color="#ff4d4d" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line} L${w} ${h} L0 ${h} Z" fill="url(#sg)"/><path d="${line}" fill="none" stroke="#ff6b4a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+}
+
+function renderTiles() {
+  const t = $("#tiles");
+  if (!S.connected) { t.innerHTML = ""; t.style.display = "none"; return; }
+  t.style.display = "";
+  const i = S.info || {};
+  const heap = +i.heap || 0;
+  const [size, crc] = (i.program && i.program !== "none") ? i.program.split(":") : [null, null];
+  const wifi = i.wifi === "connected" ? `<div class="val">${esc(i.ip)}</div><div class="sub">${esc(i.host)}</div>`
+    : i.wifi === "connecting" ? `<div class="val" style="color:var(--amber)">Connexion…</div><div class="sub">recherche du réseau</div>`
+    : `<div class="val" style="color:var(--muted)">Désactivé</div><div class="sub">configure-le à gauche</div>`;
+  t.innerHTML = `
+    <div class="card tile has-spark"><div class="lbl">${ICONS.mem}Mémoire libre</div>
+      <div class="val">${(heap / 1024).toFixed(0)} <small>Ko</small></div><div class="sub">${heap.toLocaleString("fr")} octets</div>${spark(S.heap)}</div>
+    <div class="card tile"><div class="lbl">${ICONS.prog}Programme</div>
+      ${size ? `<div class="val">${size} <small>octets</small></div><div class="sub">id ${esc(crc)} · ${i.autorun === "0" ? "pas de démarrage auto" : "démarre tout seul"}</div>`
+             : `<div class="val" style="color:var(--muted)">Aucun</div><div class="sub">glisse un .chl ci-dessous</div>`}</div>
+    <div class="card tile"><div class="lbl">${ICONS.wifi}WiFi</div>${wifi}</div>
+    <div class="card tile"><div class="lbl">${ICONS.chip}Firmware</div>
+      <div class="val">${esc(i.version || "?")}</div><div class="sub">bytecode v${esc(i.bytecode || "?")} · dispo ${esc(S.fwVersion)}</div></div>`;
+}
+
+function renderPorts() {
+  const box = $("#ports");
+  const ports = (S.ports || []).filter((p) => p.likely || p.selected);
+  const remote = S.connected && !(S.ports || []).some((p) => p.selected);
+  let html = "";
+  if (remote) html += `<button class="port sel"><div class="ic">${ICONS.wifi}</div><div><b>${esc(S.target)}</b><small>par WiFi</small></div><span class="dot"></span></button>`;
+  for (const p of ports) {
+    const sub = p.selected ? "connectée" : p.chip ? `${p.chip} · sans firmware` : (p.bridge || "port série");
+    html += `<button class="port ${p.selected ? "sel" : ""} ${p.chip ? "warn" : ""}" data-port="${esc(p.name)}">
+      <div class="ic">${ICONS.usb}</div><div><b>${esc(p.name)}</b><small>${esc(sub)}</small></div><span class="dot"></span></button>`;
+  }
+  box.innerHTML = html || `<div class="empty-ports">Aucune carte branchée.</div>`;
+  box.querySelectorAll("[data-port]").forEach((b) => b.onclick = () => {
+    const name = b.dataset.port;
+    const p = S.ports.find((x) => x.name === name);
+    if (p && p.selected) return;
+    if (p && p.chip) return flash(name);
+    run(b, () => api("/api/connect", { target: name }));
+  });
+
+  const i = S.info || {};
+  $("#wifiState").textContent = !S.connected ? "Connecte une carte pour la relier à ton réseau."
+    : i.wifi === "connected" ? `Connectée : ${i.ip}. Tu peux envoyer sans câble.`
+    : i.wifi === "connecting" ? "Connexion au réseau en cours…" : "Le WiFi n'est pas configuré.";
+  $("#wifiBtn").disabled = !S.connected;
+  $("#disconnectBtn").style.visibility = S.connected ? "visible" : "hidden";
+  $("#versions").textContent = `Chili Lab ${S.version}`;
+}
+
+function render() { renderTop(); renderTiles(); renderPorts(); }
+
+// ------------------------------------------------------------------ Console
+function addLine(l) {
+  const c = $("#console");
+  c.querySelector(".console-empty")?.remove();
+  const d = document.createElement("div");
+  const err = l.kind === "event" && /^Erreur/.test(l.text);
+  d.className = "ln " + l.kind + (err ? " err" : "");
+  const t = new Date(l.t).toLocaleTimeString("fr", { hour12: false });
+  const cls = l.kind === "out" && /^-?\d+$/.test(l.text) ? "num" : "";
+  d.innerHTML = `<time>${t}</time><span class="${cls}">${esc(l.text)}</span>`;
+  c.append(d);
+  lineCount++;
+  if (c.children.length > 3000) c.firstChild.remove();
+  $("#lineCount").textContent = lineCount + (lineCount > 1 ? " lignes" : " ligne");
+  if (autoscroll) c.scrollTop = c.scrollHeight;
+}
+
+function emptyConsole() {
+  $("#console").innerHTML = `<div class="console-empty">${ICONS.term}La sortie de la carte (<code>print</code>) s'affichera ici.</div>`;
+  lineCount = 0;
+  $("#lineCount").textContent = "0 ligne";
+}
+
+$("#autoscroll").onclick = (e) => { autoscroll = !autoscroll; e.currentTarget.classList.toggle("on", autoscroll); };
+$("#clearLog").onclick = emptyConsole;
+
+// ------------------------------------------------------------------ Programmes
+async function loadFiles() {
+  try {
+    const r = await api("/api/files");
+    workDir = r.workDir || "";
+    $("#workdir").textContent = workDir.split(/[\\/]/).slice(-1)[0];
+    $("#workdir").title = workDir;
+    const box = $("#files");
+    if (!r.files || !r.files.length) { box.innerHTML = `<div class="nofiles">Aucun programme ici pour l'instant. Crée un fichier <code>.chl</code> dans ce dossier (bouton « Ouvrir »), ou glisse un fichier ci-dessus.</div>`; return; }
+    let html = "", group = "";
+    if (!r.files.some((f) => f.group === "Mes programmes"))
+      html += `<div class="group">Mes programmes</div><div class="nofiles">Dossier vide. Crée un fichier <code>.chl</code> dedans (bouton « Ouvrir ») : il apparaîtra ici.</div>`;
+    for (const f of r.files) {
+      if (f.group !== group) { group = f.group; html += `<div class="group">${esc(group)}</div>`; }
+      html += `<div class="file"><img src="logo.svg" alt=""><div class="nm"><b>${esc(f.name)}</b><small>${f.size} octets · modifié ${new Date(f.mod).toLocaleString("fr", { dateStyle: "short", timeStyle: "short" })}</small></div>
+        <button class="chk" data-check="${esc(f.path)}" title="Vérifier sans envoyer">Vérifier</button>
+        <button class="go" data-push="${esc(f.path)}" ${S && S.connected ? "" : "disabled"}>${ICONS.play}Envoyer</button></div>`;
+    }
+    box.innerHTML = html;
+    box.querySelectorAll("[data-push]").forEach((b) => b.onclick = () => push({ path: b.dataset.push }, b));
+    box.querySelectorAll("[data-check]").forEach((b) => b.onclick = () => check({ path: b.dataset.check }, b));
+  } catch (e) { toast("error", e.message); }
+}
+
+function showErrors(title, list) {
+  const box = $("#errors");
+  if (!list) { box.classList.remove("show"); return; }
+  box.innerHTML = `<h4>${esc(title)}<button onclick="this.closest('.errors').classList.remove('show')">✕</button></h4>` +
+    list.map((e) => `<div><span>ligne ${e.line}:${e.col}</span>${esc(e.msg)}</div>`).join("");
+  box.classList.add("show");
+}
+
+async function push(req, btn) {
+  showErrors();
+  await run(btn, async () => {
+    try {
+      const r = await api("/api/push", req);
+      toast("ok", `${r.name} envoyé (${r.size} octets, ${r.ms} ms) et lancé`);
+    } catch (e) {
+      if (e.details) { showErrors(e.message, e.details); return; }
+      throw e;
+    }
+  });
+}
+
+async function check(req, btn) {
+  showErrors();
+  await run(btn, async () => {
+    try {
+      const r = await api("/api/check", req);
+      toast("ok", `${r.name} : aucune erreur (${r.size} octets compilés)`);
+    } catch (e) {
+      if (e.details) { showErrors(e.message, e.details); return; }
+      throw e;
+    }
+  });
+}
+
+async function pushFile(file) {
+  if (!file) return;
+  if (!/\.chl$/i.test(file.name)) { toast("warn", "Choisis un fichier .chl"); return; }
+  if (!S || !S.connected) { toast("warn", "Aucune carte connectée"); return; }
+  push({ name: file.name, source: await file.text() });
+}
+
+const drop = $("#drop");
+$("#fileInput").onchange = (e) => { pushFile(e.target.files[0]); e.target.value = ""; };
+["dragenter", "dragover"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => document.addEventListener(ev, (e) => { e.preventDefault(); if (ev === "drop" || !e.relatedTarget) drop.classList.remove("over"); }));
+document.addEventListener("drop", (e) => pushFile(e.dataTransfer.files[0]));
+$("#refreshFiles").onclick = loadFiles;
+$("#openDir").onclick = () => run(null, () => api("/api/reveal", {}));
+$("#changeDir").onclick = () => {
+  const path = prompt("Chemin du dossier de tes programmes :", workDir);
+  if (!path) return;
+  run(null, async () => { await api("/api/dir", { path }); await loadFiles(); toast("ok", "Dossier changé"); });
+};
+
+// ------------------------------------------------------------------ Barre latérale
+$("#connectBtn").onclick = (e) => run(e.currentTarget, async () => {
+  const target = $("#target").value.trim();
+  await api("/api/connect", { target });
+  toast("ok", "Connecté à " + target);
+});
+$("#target").onkeydown = (e) => { if (e.key === "Enter") $("#connectBtn").click(); };
+$("#disconnectBtn").onclick = () => run(null, () => api("/api/disconnect", {}));
+$("#wifiBtn").onclick = (e) => run(e.currentTarget, async () => {
+  const ssid = $("#ssid").value.trim();
+  if (!ssid) { toast("warn", "Indique le nom du réseau"); return; }
+  await api("/api/wifi", { ssid, password: $("#pass").value });
+  toast("ok", `Identifiants envoyés : la carte se connecte à « ${ssid} »`);
+  $("#pass").value = "";
+});
+
+// ------------------------------------------------------------------ Flash
+function flash(port) {
+  if (!confirm(`Installer le firmware Chili ${S.fwVersion} sur ${port} ?\n\nCe qu'il y a actuellement sur la carte sera remplacé (un programme Chili déjà présent est conservé).`)) return;
+  setGauge(0);
+  $("#flashTitle").textContent = "Installation du firmware";
+  $("#flashSub").textContent = "Ne débranche pas la carte.";
+  $("#flashErr").textContent = "";
+  $("#flashClose").hidden = true;
+  $("#flashModal").classList.add("show");
+  api("/api/flash", { port }).catch((e) => flashEvent({ error: e.message }));
+}
+
+function setGauge(p) {
+  $("#gaugeArc").style.strokeDashoffset = 326.7 * (1 - p / 100);
+  $("#gaugePct").textContent = p + " %";
+}
+
+function flashEvent(d) {
+  if (d.error) {
+    $("#flashTitle").textContent = "Échec de l'installation";
+    $("#flashSub").textContent = "";
+    $("#flashErr").textContent = d.error;
+    $("#flashClose").hidden = false;
+    return;
+  }
+  setGauge(d.percent);
+  if (d.image) $("#flashSub").textContent = "Écriture de " + d.image + "…";
+  if (d.done) {
+    $("#flashTitle").textContent = "Firmware installé ✓";
+    $("#flashSub").textContent = "Redémarrage de la carte…";
+    setTimeout(() => $("#flashModal").classList.remove("show"), 2200);
+  }
+}
+$("#flashClose").onclick = () => $("#flashModal").classList.remove("show");
+
+// ------------------------------------------------------------------ Flux d'événements
+function connectEvents() {
+  const es = new EventSource("/api/events?token=" + token);
+  es.onmessage = (m) => {
+    const ev = JSON.parse(m.data);
+    switch (ev.type) {
+      case "backlog": emptyConsole(); (ev.data || []).forEach(addLine); break;
+      case "line": addLine(ev.data); break;
+      case "state": {
+        const wasConnected = S && S.connected;
+        S = ev.data; render();
+        if (wasConnected !== S.connected) loadFiles();
+        break;
+      }
+      case "toast": toast(ev.data.level, ev.data.msg); break;
+      case "flash": flashEvent(ev.data); break;
+    }
+  };
+}
+
+emptyConsole();
+connectEvents();
+loadFiles();
+setInterval(loadFiles, 15000);
+</script>
+</body>
+</html>
