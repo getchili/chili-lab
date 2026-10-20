@@ -732,6 +732,9 @@ func (s *Server) handlePush(r *http.Request) (any, error) {
 	data := prog.Encode()
 	start := time.Now()
 	if err := conn.Load(data); err != nil {
+		if strings.Contains(err.Error(), "non disponible sur cette carte") {
+			return nil, errors.New("le firmware de la carte est trop ancien pour ce programme : mets-le à jour (bandeau orange en haut, ou chili flash)")
+		}
 		return nil, fmt.Errorf("envoi refusé : %v", err)
 	}
 	ms := time.Since(start).Milliseconds()
