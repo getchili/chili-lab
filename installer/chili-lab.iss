@@ -36,6 +36,11 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
+[InstallDelete]
+; Exemples retirés : ne pas les laisser traîner après une mise à jour.
+Type: files; Name: "{app}\examples\sos.chl"
+Type: files; Name: "{app}\examples\fib.chl"
+
 [Files]
 Source: "..\Chili Lab.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\chili\examples\*.chl"; DestDir: "{app}\examples"; Flags: ignoreversion
